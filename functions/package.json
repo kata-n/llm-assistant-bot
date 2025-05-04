@@ -7,12 +7,14 @@
     "build": "tsc",
     "serve": "ts-node-dev src/app.ts",
     "start": "node lib/index.js",
+    "dev": "ts-node-dev src/dev.ts",
     "deploy": "npm run build && firebase deploy --only functions"
   },
   "engines": {
     "node": "22"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@octokit/rest": "^20.0.2",
     "axios": "^1.6.8",
     "body-parser": "^1.20.2",

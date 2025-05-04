@@ -7,6 +7,6 @@ dotenv.config();
 
 const app = express();
 app.use(bodyParser.json());
-app.use("/webhook", webhookRouter);
+app.use("/", webhookRouter);
 
 export { app };

@@ -1,5 +1,4 @@
 import { Comment } from "../model/Comment";
-import { GeminiClient } from "../../infrastructure/gemini/GeminiClient";
 import { IAIClient } from "../../interface/service/IAIClient";
 
 export class AICommentService {
