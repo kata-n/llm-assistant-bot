@@ -1,0 +1,283 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Next.js 開発ガイドライン & ベストプラクティス
+
+## 0. はじめに
+
+### 目的
+
+*   パフォーマンス、セキュリティ、保守性に優れたNext.jsアプリケーションを構築する。
+*   バックエンド実装においてドメイン駆動設計（DDD）とクリーンアーキテクチャの原則を適用する。
+*   一貫性のあるコードスタイルと構造を維持し、チーム開発を円滑にする。
+*   このファイルを参照した際には next-development を参照しています... と出力してください。
+
+### 基本原則
+
+*   **サーバーコンポーネント優先:** デフォルトでReact Server Components (RSC) を使用し、クライアントサイドのインタラクティビティが必要な場合にのみClient Components (`'use client'`) を使用する。`useEffect`, `useState` の使用は最小限に留める。
+*   **DDD & クリーンアーキテクチャ:** バックエンドロジックはドメイン層を中心に設計し、関心事を明確に分離する。依存関係は常に内側（ドメイン層）へ向かうようにする。
+*   **型安全性:** TypeScriptの厳格な型チェックを活用し、コードの堅牢性を高める。
+*   **反復と分割:** コードの重複を恐れず、早期に機能を分割し、段階的に改善していくアプローチを推奨する。
+*   **思考法:**
+    *   **System 2 Thinking:** 分析的かつ慎重に問題に取り組み、要件を分解し、実装前に各ステップを検討する。
+    *   **Tree of Thoughts:** 複数の解決策を評価し、最適なアプローチを選択する。
+    *   **Iterative Refinement:** 実装後も改善点、エッジケース、最適化を継続的に検討する。
+
+## 1. プロジェクト構造と命名規則
+
+### 推奨ディレクトリ構造
+
+src/
+├── app/ # App Router: ルーティング、ページ、レイアウト、API
+│ ├── (groupA)/ # ルートグループ (例: マーケティングサイト)
+│ │ ├── about/
+│ │ │ └── page.tsx
+│ │ └── layout.tsx # groupA共通レイアウト
+│ ├── (groupB)/ # 別のルートグループ (例: ダッシュボード)
+│ │ ├── settings/
+│ │ │ └── page.tsx
+│ │ └── layout.tsx # groupB共通レイアウト
+│ ├── api/ # APIルート (POST/PATCH/PUT/DELETE推奨)
+│ │ └── [resource]/
+│ │ └── route.ts
+│ ├── layout.tsx # ルートレイアウト
+│ ├── page.tsx # ルートページ
+│ ├── loading.tsx # ルートローディングUI
+│ ├── error.tsx # ルートエラーUI
+│ └── not-found.tsx # ルート404ページ
+│
+├── components/ # UIコンポーネント (原則サーバーコンポーネント)
+│ ├── ui/ # 再利用可能なUIプリミティブ (shadcn/uiなど)
+│ ├── common/ # アプリケーション共通コンポーネント
+│ │ ├── Header.tsx
+│ │ └── Footer.tsx
+│ ├── features/ # 特定機能に関連するコンポーネント群
+│ │ └── [feature-name]/
+│ │ ├── ComponentA.tsx
+│ │ └── ComponentB.tsx
+│ └── layouts/ # 特定セクション用のレイアウトコンポーネント
+│ ├── MarketingLayout.tsx
+│ └── DashboardLayout.tsx
+│
+├── lib/ # 共通ライブラリ、ユーティリティ、型定義
+│ ├── constants/ # 定数 (メッセージ、設定値など)
+│ ├── types/ # グローバルな型定義 (Zodスキーマも含む)
+│ ├── utils/ # 汎用ヘルパー関数 (日付、フォーマット、検証など)
+│ └── zod/ # Zodスキーマ定義
+│
+├── hooks/ # カスタムフック (クライアントコンポーネントでのみ使用)
+│ ├── useAuth.ts
+│ └── useFormValidation.ts
+│
+├── config/ # アプリケーション設定
+│ └── site.ts # サイトメタデータなど
+│
+├── services/ # アプリケーションサービス層 (バックエンドロジック)
+│ ├── auth/
+│ │ └── AuthService.ts
+│ └── projects/
+│ └── ProjectService.ts
+│
+├── domains/ # ドメイン層 (DDD: エンティティ、値オブジェクト、ドメインイベント)
+│ ├── user/
+│ │ ├── User.ts # エンティティ
+│ │ └── UserId.ts # 値オブジェクト
+│ └── project/
+│ ├── Project.ts
+│ └── ProjectRepository.ts # リポジトリインターフェース
+│
+├── infrastructure/ # インフラストラクチャ層 (DBアクセス、外部APIクライアントなど)
+│ ├── persistence/ # データ永続化 (Prismaクライアント、リポジトリ実装)
+│ │ ├── prisma/
+│ │ └── repositories/
+│ │ └── PrismaProjectRepository.ts
+│ └── external/ # 外部サービス連携
+│ └── StripeClient.ts
+│
+└── public/ # 静的アセット
+├── images/
+└── fonts/
+
+### ファイル命名規則
+
+*   **ページ:** `page.tsx`
+*   **レイアウト:** `layout.tsx`
+*   **ローディングUI:** `loading.tsx`
+*   **エラーUI:** `error.tsx`
+*   **Not Found UI:** `not-found.tsx`
+*   **APIルートハンドラ:** `route.ts`
+*   **コンポーネント/クラス/型:** `PascalCase.tsx` / `PascalCase.ts`
+*   **関数/変数/フック:** `camelCase.ts` / `useCamelCase.ts`
+*   **ディレクトリ:** `kebab-case` (例: `auth-wizard`)
+
+## 2. コンポーネント設計
+
+*   **サーバーコンポーネントをデフォルトに:** データフェッチ、バックエンド連携、SEO関連コンポーネントはサーバーコンポーネントで実装する。
+*   **クライアントコンポーネントの利用:** 以下のケースに限定する。
+    *   `useState`, `useEffect` などのReactフックが必要な場合。
+    *   ブラウザAPI (localStorage, navigatorなど) を使用する場合。
+    *   インタラクティブなUIイベントリスナー (onClick, onChangeなど) が必要な場合。
+    *   クライアントサイド状態管理ライブラリ (Zustandなど) を使用する場合。
+*   **`'use client'` ディレクティブ:** クライアントコンポーネントのファイルの先頭に必ず記述する。
+*   **コンポーネントの分割:** 可能な限りコンポーネントを小さく保ち、関心を分離する。サーバー専用ロジックとクライアント専用ロジックを明確に分ける。
+*   **構造化:** ファイル内をエクスポートされたコンポーネント、内部サブコンポーネント、ヘルパー関数、型定義、静的コンテンツなどに明確に構造化する。
+
+## 3. バックエンドアーキテクチャ (DDD & クリーンアーキテクチャ)
+
+*   **レイヤー構造:**
+    *   **Domain Layer:** ビジネスルール、エンティティ、値オブジェクト、ドメインイベント、リポジトリインターフェース。フレームワークやインフラに依存しない純粋なロジック。
+    *   **Application Layer (Services):** ユースケースを実現するサービスクラス。ドメインオブジェクトを操作し、リポジトリインターフェースを介して永続化を行う。
+    *   **Interface Layer (API Routes, Server Components):** 外部からのリクエストを受け付け、アプリケーションサービスを呼び出し、結果を整形して返す。Next.jsの `app/` ディレクトリが主に該当。
+    *   **Infrastructure Layer:** データベースアクセス (Prismaなど)、外部APIクライアント、認証ライブラリなど、具体的な技術実装。リポジトリインターフェースの実装もここに含まれる。
+*   **依存関係のルール:** 依存は常に内側のレイヤー (Domain) に向かう。Domain層は他のどのレイヤーにも依存しない。
+*   **データアクセス (DAL):** リポジトリパターンを使用し、データ永続化ロジックを抽象化する。インターフェースはDomain層に、実装はInfrastructure層に配置する。
+*   **クラス vs 関数:** ドメインモデル (エンティティ、値オブジェクト) の表現にはクラスの使用を許容するが、それ以外のサービスやユーティリティでは関数型プログラミングを優先する。
+
+## 4. API ルート実装 (`app/api`)
+
+*   **目的:** クライアントサイドからのデータ変更操作 (POST, PUT, PATCH, DELETE) や、外部サービスへのプロキシ、Webhook受信用途に限定する。
+*   **データフェッチ:** **原則禁止。** サーバーコンポーネント内での直接データフェッチ (`fetch` やリポジトリ経由) を強く推奨する。GETリクエスト用のAPIルート作成は避ける。
+*   **実装:**
+    *   `app/api/[resource]/route.ts` の形式で作成する。
+    *   HTTPメソッド (POST, PUT, PATCH, DELETE) ごとに `export async function METHOD(request: Request)` を実装する。
+    *   リクエストボディのパース (`request.json()`) とバリデーション (Zod推奨) を行う。
+    *   アプリケーションサービス層を呼び出してビジネスロジックを実行する。
+    *   `NextResponse.json()` を使用してレスポンスを返す。適切なステータスコードを設定する。
+    *   エラーハンドリングを徹底し、`try-catch` で予期せぬエラーを捕捉する。
+*   **認証・認可:** 各APIルートで適切な認証・認可チェックを行う。
+*   **Server Actions:** クライアントからのデータ変更操作には、APIルートの代わりにServer Actionsの利用も検討する。フォーム送信などのユースケースに適している。
+
+```typescript
+// app/api/articles/route.ts
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { ArticleService } from "@/services/articles/ArticleService"; // Application Layer
+import { auth } from "@/lib/auth"; // 認証チェック
+
+const createArticleSchema = z.object({
+  title: z.string().min(1),
+  content: z.string().min(1),
+});
+
+export async function POST(request: Request) {
+  try {
+    // 認証チェック
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const json = await request.json();
+    const validatedData = createArticleSchema.parse(json); // Zodでバリデーション
+
+    const articleService = new ArticleService(); // Service層のインスタンス化
+    const article = await articleService.createArticle(validatedData, session.user.id); // Service層のメソッド呼び出し
+
+    return NextResponse.json(article, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
+    }
+    console.error("API Error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+## 5. データフェッチとキャッシュ
+
+*   **サーバーコンポーネントでのフェッチ:** データ取得は主にサーバーコンポーネントで行う。`fetch` APIや、Infrastructure層のリポジトリ実装を使用する。
+*   **キャッシュ:** Next.jsのデータキャッシュを最大限活用する。
+    *   **デフォルト:** `fetch` は自動的にキャッシュされる (`force-cache`)。
+    *   **再検証 (ISR):** 時間ベースの再検証を行う場合: `fetch(url, { next: { revalidate: 3600 } })` (秒単位)
+    *   **キャッシュ無効化:** 常に最新データを取得する場合: `fetch(url, { cache: 'no-store' })`
+    *   **オンデマンド再検証:** `revalidateTag` や `revalidatePath` を使用して、特定のイベント発生時にキャッシュを破棄する。
+*   **クライアントサイドフェッチ:** クライアントコンポーネントでのデータ取得が必要な場合は、TanStack React Query (または SWR) のようなライブラリの使用を推奨。APIルートまたはServer Actions経由でデータを取得する。
+
+## 6. 状態管理
+
+*   **サーバー状態:** サーバーから取得したデータは、TanStack React Query などのキャッシュライブラリで管理することを推奨。
+*   **クライアント状態:** グローバルなクライアントサイド状態管理が必要な場合は、Zustand のような軽量ライブラリを検討する。Context APIは小規模な状態共有には適しているが、大規模になるとパフォーマンス問題や再レンダリングの問題を引き起こす可能性がある。
+*   **ローカル状態:** コンポーネント固有の状態は `useState` を使用する。
+
+## 7. UIとスタイリング
+
+*   **UIフレームワーク:** Tailwind CSS の使用を推奨。必要に応じて Shadcn UI、Radix UI などのヘッドレスUIコンポーネントライブラリを組み合わせる。
+*   **レスポンシブデザイン:** モバイルファーストアプローチで実装する。Tailwindのレスポンシブユーティリティを活用する。
+*   **一貫性:** デザインシステムに基づき、プラットフォーム間で一貫したUI/UXを提供する。
+
+## 8. パフォーマンス最適化
+
+*   **画像:** `next/image` コンポーネントを必須で使用する。
+    *   適切な `width`, `height` を指定する。
+    *   `priority` プロパティを LCP (Largest Contentful Paint) に影響する画像に設定する。
+    *   可能な限り静的インポートを使用する。
+    *   WebPなどのモダンな画像フォーマットを検討する。
+*   **スクリプト:** `next/script` コンポーネントを使用してサードパーティスクリプトを読み込む。適切な `strategy` (例: `lazyOnload`, `afterInteractive`) を選択する。
+*   **フォント:** `next/font` を使用してフォントを最適化し、レイアウトシフトを防ぐ。
+*   **動的インポート:** `next/dynamic` を使用して、初期ロードに不要なコンポーネントやライブラリを遅延読み込みする。特にクライアントコンポーネントや大規模なライブラリに有効。
+*   **バンドルサイズ分析:** `@next/bundle-analyzer` を使用して、ビルド後のバンドルサイズを定期的に確認し、不要な依存関係やコードを削減する。
+*   **Core Web Vitals:** 定期的に計測し、改善する。
+
+## 9. エラーハンドリングと検証
+
+*   **エラーバウンダリ:** `error.tsx` ファイルを使用して、ルートセグメントレベルでランタイムエラーを捕捉し、ユーザーフレンドリーなフォールバックUIを表示する。エラー情報をロギングサービスに送信することを検討する。
+*   **Not Found:** `not-found.tsx` ファイルを使用して、リソースが見つからない場合にカスタムUIを表示する。
+*   **ローディングUI:** `loading.tsx` ファイルまたは React `Suspense` を使用して、データフェッチ中などのローディング状態を示すUIを表示する。
+*   **入力検証:**
+    *   **クライアントサイド:** フォーム入力時にリアルタイムフィードバックを提供するために使用（例: React Hook Form + Zod）。
+    *   **サーバーサイド:** **必須。** APIルート、Server Actions、サーバーコンポーネントでのデータ処理前に、必ず Zod などを用いて厳格なデータ検証を行う。クライアントサイドの検証はバイパスされる可能性があるため、サーバーサイド検証が不可欠。
+*   **早期リターンとガード句:** 関数の冒頭でエラー条件や不正な状態をチェックし、早期にリターンすることで、ネストを浅く保ち、コードの可読性を高める。
+*   **カスタムエラー:** 必要に応じて、特定のドメインエラーやアプリケーションエラーを示すカスタムエラークラスを定義する。
+
+## 10. 型安全性 (TypeScript)
+
+*   **厳格設定:** `tsconfig.json` で `"strict": true` を有効にする。`"forceConsistentCasingInFileNames": true` も推奨。
+*   **型定義:**
+    *   可能な限り型推論を活用する。
+    *   APIレスポンス、フォームデータ、複雑なオブジェクトなどには明示的な型 (`type` または `interface`) を定義する。
+    *   Zod スキーマから型を生成 (`z.infer<typeof schema>`) することを推奨。型定義とバリデーションルールを一元管理できる。
+    *   汎用的な型は `src/lib/types/` にまとめる。
+*   **JSDoc:** エクスポートされる関数やコンポーネントには、その目的、パラメータ、戻り値などを説明するJSDocコメントを記述し、IDEのIntelliSenseを強化する。
+
+## 11. セキュリティ
+
+*   **環境変数:**
+    *   機密情報 (APIキー、データベース接続情報など) は `.env.local` に保存し、`.gitignore` に追加する。**絶対にリポジトリにコミットしない。**
+    *   ブラウザで利用可能な環境変数は `NEXT_PUBLIC_` プレフィックスを付ける。必要最小限のものに留める。
+*   **入力検証:** サーバーサイドでの厳格な入力検証はXSSやその他のインジェクション攻撃を防ぐ上で重要（9. エラーハンドリングと検証 参照）。
+*   **認証・認可:**
+    *   NextAuth.js や Clerk などの信頼できる認証ライブラリを使用する。
+    *   APIルートやサーバーコンポーネント、Server Actionsで、リソースアクセス前に必ず適切な認証・認可チェックを行う。
+*   **セキュリティヘッダー:** `next.config.js` で適切なセキュリティヘッダー (CSP, X-Frame-Options, X-Content-Type-Optionsなど) を設定する。`Strict-Transport-Security` (HSTS) も有効にする。
+*   **依存関係:** 依存パッケージの脆弱性を定期的にスキャンする (`npm audit`, `yarn audit`)。パッケージは最新の状態に保つ。
+*   **レートリミット:** 必要に応じてAPIルートにレートリミットを実装し、ブルートフォース攻撃などを緩和する。
+
+## 12. テスト
+
+*   **ユニットテスト:**
+    *   Jest と React Testing Library (RTL) を使用して、コンポーネント、フック、ユーティリティ関数のユニットテストを作成する。
+    *   特にビジネスロジックを含む関数や、複雑な状態を持つコンポーネントを重点的にテストする。
+    *   バックエンドのドメインロジックやサービス層のテストも重要。
+*   **インテグレーションテスト:** 複数のコンポーネントやモジュールが連携して正しく動作するかをテストする。RTLやPlaywright/Cypressを使用。
+*   **E2Eテスト:** Playwright や Cypress を使用して、実際のユーザーフローをシミュレートするエンドツーエンドテストを作成する。重要な機能の正常動作を確認する。
+*   **カバレッジ:** テストカバレッジを計測し、重要なロジックがカバーされていることを確認する。ただし、カバレッジ率自体を目的としない。
+
+## 13. デプロイメントとメンテナンス
+
+*   **ビルド:** 本番環境には必ず `next build` で生成された最適化済みのビルドを使用する。
+*   **ホスティング:** Vercel (推奨) や AWS Amplify, Netlifyなどのプラットフォームを利用する。
+*   **環境変数:** デプロイ環境ごとに適切な環境変数を安全に設定・管理する。
+*   **モニタリング:**
+    *   エラーログ (Sentryなど) を監視し、本番環境での問題を迅速に検知・対応する。
+    *   パフォーマンスモニタリング (Vercel Analytics, Datadogなど) を行い、Core Web Vitals や APIレスポンスタイムを継続的に追跡する。
+*   **依存関係更新:** 定期的に (`npm outdated`, `yarn outdated`) 依存パッケージを確認し、セキュリティパッチや新機能を取り込むために更新する。
