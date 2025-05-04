@@ -17,7 +17,7 @@ router.post("/", async (req: Request, res: Response) => {
     if (!issueNumber || !content)
       return res.status(400).send("Invalid payload");
 
-    const githubClient = new GitHubClient(process.env.GITHUB_TOKEN!);
+    const githubClient = new GitHubClient();
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
     const aiService = new AICommentService(geminiClient);
     const useCase = new GitHubCommentUseCase(aiService, githubClient);
