@@ -3,6 +3,7 @@ import { GitHubCommentUseCase } from "../../application/GitHubCommentUseCase";
 import { GeminiClient } from "../../infrastructure/gemini/GeminiClient";
 import { GitHubClient } from "../../infrastructure/github/GitHubClient";
 import { AICommentService } from "../../domain/service/AICommentService";
+import { HttpsError } from "firebase-functions/v2/https";
 
 const router = Router();
 
@@ -11,11 +12,20 @@ router.post("/", async (req: Request, res: Response) => {
     const event = req.headers["x-github-event"];
     const payload = req.body;
 
+    // Bot本人の投稿を除外
+    if (payload.sender?.login === "llm-comment-assistant[bot]") {
+      throw new HttpsError("invalid-argument", "Bot post ignored");
+    }
+
     const issueNumber = payload.issue?.number || payload.pull_request?.number;
     const content = payload.issue?.body || payload.pull_request?.body;
     const repo = payload.repository;
-    if (!issueNumber || !content)
-      return res.status(400).send("Invalid payload");
+    if (!issueNumber || !content) {
+      throw new HttpsError(
+        "invalid-argument",
+        "issueNumber or content is null"
+      );
+    }
 
     const githubClient = new GitHubClient();
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
@@ -30,9 +40,8 @@ router.post("/", async (req: Request, res: Response) => {
     });
 
     res.status(200).send("Comment posted");
-  } catch (e) {
-    console.error(e);
-    res.status(500).send("Internal Server Error");
+  } catch (error) {
+    throw new HttpsError("internal", `Internal Server Error: ${error}`);
   }
 });
 
