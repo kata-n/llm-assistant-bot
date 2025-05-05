@@ -4,13 +4,15 @@ import { GeminiClient } from "../../infrastructure/gemini/GeminiClient";
 import { GitHubClient } from "../../infrastructure/github/GitHubClient";
 import { AICommentService } from "../../domain/service/AICommentService";
 import { HttpsError } from "firebase-functions/v2/https";
-
+import { logger } from "firebase-functions/v2";
 const router = Router();
 
 router.post("/", async (req: Request, res: Response) => {
   try {
     const event = req.headers["x-github-event"];
     const payload = req.body;
+
+    logger.info("requested github webhook", payload);
 
     // Bot本人の投稿を除外
     if (payload.sender?.login === "llm-comment-assistant[bot]") {
@@ -20,6 +22,9 @@ router.post("/", async (req: Request, res: Response) => {
     const issueNumber = payload.issue?.number || payload.pull_request?.number;
     const content = payload.issue?.body || payload.pull_request?.body;
     const repo = payload.repository;
+
+    logger.info("requested github repository", repo);
+
     if (!issueNumber || !content) {
       throw new HttpsError(
         "invalid-argument",
