@@ -12,14 +12,14 @@ router.post("/", async (req: Request, res: Response) => {
     const event = req.headers["x-github-event"];
     const payload = req.body;
 
-    logger.info("requested github webhook", payload);
+    logger.info("requested github webhook", `${JSON.stringify(payload)}`);
 
     // Bot本人の投稿を除外
     if (
       payload.sender?.type === "Bot" ||
       payload.sender?.login === "gemini-ai-assistant[bot]"
     ) {
-      logger.info("Bot post ignored", payload);
+      logger.info("Bot post ignored", `${JSON.stringify(payload)}`);
       res.status(200).send("Bot post ignored");
       return;
     }
@@ -28,7 +28,7 @@ router.post("/", async (req: Request, res: Response) => {
     const content = payload.issue?.body || payload.pull_request?.body;
     const repo = payload.repository;
 
-    logger.info("requested github repository", repo);
+    logger.info("requested github repository", `${JSON.stringify(repo)}`);
 
     if (!issueNumber || !content) {
       throw new HttpsError(
@@ -42,11 +42,30 @@ router.post("/", async (req: Request, res: Response) => {
     const aiService = new AICommentService(geminiClient);
     const useCase = new GitHubCommentUseCase(aiService, githubClient);
 
+    let prompt = content;
+
+    // PRの場合はファイル差分をプロンプトに追加
+    if (payload.pull_request) {
+      const prFiles = await githubClient.getPullRequestFiles(
+        repo.owner.login,
+        repo.name,
+        issueNumber
+      );
+      // 差分があるファイルのみ抽出し、patchが存在するものだけを対象
+      const diffs = prFiles
+        .filter((f) => !!f.patch)
+        .map((f) => `--- ${f.filename} ---\n${f.patch}`)
+        .join("\n\n");
+      if (diffs) {
+        prompt += `\n\n--- このPRの変更ファイルと差分 ---\n${diffs}`;
+      }
+    }
+
     await useCase.handle({
       owner: repo.owner.login,
       repo: repo.name,
       issueNumber,
-      prompt: content,
+      prompt,
     });
 
     res.status(200).send("Comment posted");
