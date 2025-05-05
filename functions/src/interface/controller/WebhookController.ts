@@ -19,7 +19,9 @@ router.post("/", async (req: Request, res: Response) => {
       payload.sender?.type === "Bot" ||
       payload.sender?.login === "gemini-ai-assistant[bot]"
     ) {
-      throw new HttpsError("invalid-argument", "Bot post ignored");
+      logger.info("Bot post ignored", payload);
+      res.status(200).send("Bot post ignored");
+      return;
     }
 
     const issueNumber = payload.issue?.number || payload.pull_request?.number;
