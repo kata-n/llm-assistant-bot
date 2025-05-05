@@ -15,7 +15,10 @@ router.post("/", async (req: Request, res: Response) => {
     logger.info("requested github webhook", payload);
 
     // Bot本人の投稿を除外
-    if (payload.sender?.login === "llm-comment-assistant[bot]") {
+    if (
+      payload.sender?.type === "Bot" ||
+      payload.sender?.login === "gemini-ai-assistant[bot]"
+    ) {
       throw new HttpsError("invalid-argument", "Bot post ignored");
     }
 
