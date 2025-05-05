@@ -31,7 +31,7 @@ router.post("/", async (req: Request, res: Response) => {
     if (!issueNumber || !content) {
       throw new HttpsError(
         "invalid-argument",
-        "issueNumber or content is null"
+        `issueNumber or content is not found: ${JSON.stringify(payload)}`
       );
     }
 
