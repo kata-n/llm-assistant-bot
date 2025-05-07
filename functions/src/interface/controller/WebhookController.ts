@@ -53,10 +53,6 @@ router.post("/", async (req: Request, res: Response) => {
       const prUseCase = new CreatePullRequestUseCase(aiService, githubClient);
 
       try {
-        // const prUrl = payload.issue.pull_request.url;
-        // const pr = await githubClient.getPullRequestFromUrl(prUrl);
-        // const sourceBranch = pr.head.ref;
-
         await prUseCase.handle({ owner, repo, issueNumber, sourceBranch });
         return res.status(200).send("PR created via Gemini");
       } catch (err) {

@@ -45,15 +45,24 @@ export class AICommentService {
       sourceBranch
     ).replace("{fileSummaries}", fileSummaries);
 
-    const response = await this.aiClient.generateComment(prompt);
-
     try {
-      logger.info("[AICommentService] response", response);
+      const botPersona =
+        BOT_PERSONAS_ARRAY[
+          Math.floor(Math.random() * BOT_PERSONAS_ARRAY.length)
+        ];
 
-      const cleaned = extractJsonFromGeminiResponse(response);
+      const result = await this.aiClient.generateComment(
+        botPersona.name,
+        prompt,
+        []
+      );
+      logger.info("[AICommentService] response", JSON.stringify(result));
 
-      const parsed: PRInfo = JSON.parse(cleaned);
-      return parsed;
+      const cleaned = extractJsonFromGeminiResponse(result.message);
+
+      logger.info("[AICommentService] cleaned", JSON.stringify(cleaned));
+
+      return JSON.parse(cleaned);
     } catch (error) {
       console.error("[Gemini JSON Parse Error]", error);
       throw new Error("Geminiからの応答を解析できませんでした");
@@ -62,18 +71,14 @@ export class AICommentService {
 }
 
 function extractJsonFromGeminiResponse(response: string): string {
-  // 1. ```json ... ``` のブロックを抽出
-  const matchJsonBlock = response.match(/```json\\s*([\\s\\S]*?)\\s*```/i);
+  const matchJsonBlock = response.match(/```json\s*([\s\S]*?)\s*```/i);
   if (matchJsonBlock) return matchJsonBlock[1].trim();
 
-  // 2. 単なる ``` ... ``` のブロックを抽出
-  const matchCodeBlock = response.match(/```\\s*([\\s\\S]*?)\\s*```/);
+  const matchCodeBlock = response.match(/```\s*([\s\S]*?)\s*```/);
   if (matchCodeBlock) return matchCodeBlock[1].trim();
 
-  // 3. JSONらしいオブジェクトを抜き出す
-  const matchObject = response.match(/\\{[\\s\\S]+\\}/);
+  const matchObject = response.match(/\{[\s\S]+?\}/);
   if (matchObject) return matchObject[0].trim();
 
-  // 4. 最後の手段：全体返す
   return response.trim();
 }
