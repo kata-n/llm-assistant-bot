@@ -7,6 +7,8 @@ import {
   DIFF_FILE_NO_PATCH_PLACEHOLDER,
 } from "../../constants/AICommentService.constants";
 import { logger } from "firebase-functions/v2";
+import { BOT_PERSONAS_ARRAY } from "../../constants/BotPersona.constants";
+
 export class AICommentService {
   private readonly aiClient: IAIClient;
 
@@ -15,8 +17,15 @@ export class AICommentService {
   }
 
   async createCommentFromPrompt(prompt: string): Promise<Comment> {
-    const result = await this.aiClient.generateComment(prompt);
-    return new Comment(result);
+    const botPersona =
+      BOT_PERSONAS_ARRAY[Math.floor(Math.random() * BOT_PERSONAS_ARRAY.length)];
+
+    const result = await this.aiClient.generateComment(
+      botPersona.name,
+      prompt,
+      []
+    );
+    return new Comment(result.message);
   }
 
   async summarizeDiffAndGeneratePR(
