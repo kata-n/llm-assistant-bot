@@ -14,3 +14,9 @@ export const PR_DIFF_PROMPT_TEMPLATE = `以下は GitHub の develop ブラン�
 export const DIFF_FILE_SUMMARY_TEMPLATE = `### {filename}\n変更種別: {status}\n\n{patch}`;
 
 export const DIFF_FILE_NO_PATCH_PLACEHOLDER = "(差分なし)";
+
+export const DIFF_FILE_SUMMARY_KEY_FILENAME = "{filename}";
+export const DIFF_FILE_SUMMARY_KEY_STATUS = "{status}";
+export const DIFF_FILE_SUMMARY_KEY_PATCH = "{patch}";
+export const PR_DIFF_PROMPT_KEY_SOURCE_BRANCH = "{sourceBranch}";
+export const PR_DIFF_PROMPT_KEY_FILE_SUMMARIES = "{fileSummaries}";

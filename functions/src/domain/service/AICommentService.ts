@@ -5,6 +5,11 @@ import {
   PR_DIFF_PROMPT_TEMPLATE,
   DIFF_FILE_SUMMARY_TEMPLATE,
   DIFF_FILE_NO_PATCH_PLACEHOLDER,
+  DIFF_FILE_SUMMARY_KEY_FILENAME,
+  DIFF_FILE_SUMMARY_KEY_STATUS,
+  DIFF_FILE_SUMMARY_KEY_PATCH,
+  PR_DIFF_PROMPT_KEY_SOURCE_BRANCH,
+  PR_DIFF_PROMPT_KEY_FILE_SUMMARIES,
 } from "../../constants/AICommentService.constants";
 import { logger } from "firebase-functions/v2";
 import { BOT_PERSONAS_ARRAY } from "../../constants/BotPersona.constants";
@@ -34,16 +39,22 @@ export class AICommentService {
   ): Promise<PRInfo> {
     const fileSummaries = diffFiles
       .map((file) =>
-        DIFF_FILE_SUMMARY_TEMPLATE.replace("{filename}", file.filename)
-          .replace("{status}", file.status)
-          .replace("{patch}", file.patch ?? DIFF_FILE_NO_PATCH_PLACEHOLDER)
+        DIFF_FILE_SUMMARY_TEMPLATE.replace(
+          DIFF_FILE_SUMMARY_KEY_FILENAME,
+          file.filename
+        )
+          .replace(DIFF_FILE_SUMMARY_KEY_STATUS, file.status)
+          .replace(
+            DIFF_FILE_SUMMARY_KEY_PATCH,
+            file.patch ?? DIFF_FILE_NO_PATCH_PLACEHOLDER
+          )
       )
       .join("\n\n");
 
     const prompt = PR_DIFF_PROMPT_TEMPLATE.replace(
-      "{sourceBranch}",
+      PR_DIFF_PROMPT_KEY_SOURCE_BRANCH,
       sourceBranch
-    ).replace("{fileSummaries}", fileSummaries);
+    ).replace(PR_DIFF_PROMPT_KEY_FILE_SUMMARIES, fileSummaries);
 
     try {
       const botPersona =
