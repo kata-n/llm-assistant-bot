@@ -14,6 +14,7 @@ import {
   logRepositoryInfo,
 } from "./utils/githubWebhookLogger";
 import { buildPrDiffPrompt } from "./utils/prDiffBuilder";
+import { CreatePullRequestUseCase } from "../../application/CreatePullRequestUseCase";
 
 const router = Router();
 
@@ -28,6 +29,33 @@ router.post("/", async (req: Request, res: Response) => {
       logBotPostIgnored(payload);
       res.status(200).send("Bot post ignored");
       return;
+    }
+
+    if (
+      payload.action === "created" &&
+      payload.comment?.body?.toLowerCase().includes("pr作って") &&
+      payload.issue?.pull_request
+    ) {
+      const owner = payload.repository.owner.login;
+      const repo = payload.repository.name;
+      const issueNumber = payload.issue.number;
+
+      const githubClient = new GitHubClient();
+      const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
+      const aiService = new AICommentService(geminiClient);
+      const prUseCase = new CreatePullRequestUseCase(aiService, githubClient);
+
+      try {
+        const prUrl = payload.issue.pull_request.url;
+        const pr = await githubClient.getPullRequestFromUrl(prUrl);
+        const sourceBranch = pr.head.ref;
+
+        await prUseCase.handle({ owner, repo, issueNumber, sourceBranch });
+        return res.status(200).send("PR created via Gemini");
+      } catch (err) {
+        console.error("[Webhook Error]", err);
+        return res.status(500).send("Failed to create PR");
+      }
     }
 
     const { issueNumber, content } = validateGitHubWebhookPayload(payload);
