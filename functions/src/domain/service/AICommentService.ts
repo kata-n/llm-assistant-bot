@@ -6,7 +6,7 @@ import {
   DIFF_FILE_SUMMARY_TEMPLATE,
   DIFF_FILE_NO_PATCH_PLACEHOLDER,
 } from "../../constants/AICommentService.constants";
-
+import { logger } from "firebase-functions/v2";
 export class AICommentService {
   private readonly aiClient: IAIClient;
 
@@ -39,11 +39,32 @@ export class AICommentService {
     const response = await this.aiClient.generateComment(prompt);
 
     try {
-      const parsed: PRInfo = JSON.parse(response);
+      logger.info("[AICommentService] response", response);
+
+      const cleaned = extractJsonFromGeminiResponse(response);
+
+      const parsed: PRInfo = JSON.parse(cleaned);
       return parsed;
     } catch (error) {
       console.error("[Gemini JSON Parse Error]", error);
       throw new Error("Geminiからの応答を解析できませんでした");
     }
   }
+}
+
+function extractJsonFromGeminiResponse(response: string): string {
+  // 1. ```json ... ``` のブロックを抽出
+  const matchJsonBlock = response.match(/```json\\s*([\\s\\S]*?)\\s*```/i);
+  if (matchJsonBlock) return matchJsonBlock[1].trim();
+
+  // 2. 単なる ``` ... ``` のブロックを抽出
+  const matchCodeBlock = response.match(/```\\s*([\\s\\S]*?)\\s*```/);
+  if (matchCodeBlock) return matchCodeBlock[1].trim();
+
+  // 3. JSONらしいオブジェクトを抜き出す
+  const matchObject = response.match(/\\{[\\s\\S]+\\}/);
+  if (matchObject) return matchObject[0].trim();
+
+  // 4. 最後の手段：全体返す
+  return response.trim();
 }

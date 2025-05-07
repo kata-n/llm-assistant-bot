@@ -15,6 +15,7 @@ import {
 } from "./utils/githubWebhookLogger";
 import { buildPrDiffPrompt } from "./utils/prDiffBuilder";
 import { CreatePullRequestUseCase } from "../../application/CreatePullRequestUseCase";
+import { logger } from "firebase-functions/v2";
 
 const router = Router();
 
@@ -33,9 +34,15 @@ router.post("/", async (req: Request, res: Response) => {
 
     if (
       payload.action === "created" &&
-      payload.comment?.body?.toLowerCase().includes("pr作って") &&
-      payload.issue?.pull_request
+      /pr作って/i.test(payload.comment?.body)
     ) {
+      logger.info("Received PR creation request");
+
+      const match = payload.comment.body.match(
+        /[\s　]*(\S+)[\s　]*に対してpr作って/i
+      );
+      const sourceBranch = match?.[1];
+
       const owner = payload.repository.owner.login;
       const repo = payload.repository.name;
       const issueNumber = payload.issue.number;
@@ -46,9 +53,9 @@ router.post("/", async (req: Request, res: Response) => {
       const prUseCase = new CreatePullRequestUseCase(aiService, githubClient);
 
       try {
-        const prUrl = payload.issue.pull_request.url;
-        const pr = await githubClient.getPullRequestFromUrl(prUrl);
-        const sourceBranch = pr.head.ref;
+        // const prUrl = payload.issue.pull_request.url;
+        // const pr = await githubClient.getPullRequestFromUrl(prUrl);
+        // const sourceBranch = pr.head.ref;
 
         await prUseCase.handle({ owner, repo, issueNumber, sourceBranch });
         return res.status(200).send("PR created via Gemini");
