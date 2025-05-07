@@ -1,5 +1,6 @@
 import { Comment } from "../model/Comment";
 import { IAIClient } from "../../interface/service/IAIClient";
+import { BOT_PERSONAS_ARRAY } from "../../constants/BotPersona.constants";
 
 export class AICommentService {
   private readonly aiClient: IAIClient;
@@ -9,7 +10,14 @@ export class AICommentService {
   }
 
   async createCommentFromPrompt(prompt: string): Promise<Comment> {
-    const result = await this.aiClient.generateComment(prompt);
-    return new Comment(result);
+    const botPersona =
+      BOT_PERSONAS_ARRAY[Math.floor(Math.random() * BOT_PERSONAS_ARRAY.length)];
+
+    const result = await this.aiClient.generateComment(
+      botPersona.name,
+      prompt,
+      []
+    );
+    return new Comment(result.message);
   }
 }
