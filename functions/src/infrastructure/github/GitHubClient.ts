@@ -55,11 +55,6 @@ export class GitHubClient {
     return res.data.html_url;
   }
 
-  async getPullRequestFromUrl(url: string): Promise<{ head: { ref: string } }> {
-    const res = await this.octokit.request(`GET ${url}`);
-    return res.data;
-  }
-
   async getPullRequestFiles(
     owner: string,
     repo: string,
@@ -79,24 +74,6 @@ export class GitHubClient {
       status: file.status,
       patch: file.patch,
     }));
-  }
-
-  async getFileContent(
-    owner: string,
-    repo: string,
-    path: string
-  ): Promise<string> {
-    const res = await this.octokit.request(
-      "GET /repos/{owner}/{repo}/contents/{path}",
-      {
-        owner,
-        repo,
-        path,
-      }
-    );
-
-    const content = res.data && "content" in res.data ? res.data.content : "";
-    return Buffer.from(content, "base64").toString("utf8");
   }
 
   async postComment(

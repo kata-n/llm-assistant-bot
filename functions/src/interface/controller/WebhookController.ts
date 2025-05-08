@@ -5,43 +5,51 @@ import { GitHubClient } from "../../infrastructure/github/GitHubClient";
 import { AICommentService } from "../../domain/service/AICommentService";
 import { HttpsError } from "firebase-functions/v2/https";
 import {
+  getSourceBranch,
   isBotPost,
+  isPrCreateComment,
   validateGitHubWebhookPayload,
 } from "./validators/githubWebhookValidator";
-import {
-  logWebhookRequest,
-  logBotPostIgnored,
-  logRepositoryInfo,
-} from "./utils/githubWebhookLogger";
 import { buildPrDiffPrompt } from "./utils/prDiffBuilder";
 import { CreatePullRequestUseCase } from "../../application/CreatePullRequestUseCase";
 import { logger } from "firebase-functions/v2";
 
 const router = Router();
+const ACTION_CREATED = "created";
 
 router.post("/", async (req: Request, res: Response) => {
   try {
     const payload = req.body;
 
-    logWebhookRequest(payload);
+    logger.info(
+      "requested github-llm-bot webhook start",
+      `${JSON.stringify(payload)}`
+    );
 
     // Bot本人の投稿を除外
     if (isBotPost(payload)) {
-      logBotPostIgnored(payload);
-      res.status(200).send("Bot post ignored");
+      logger.info(
+        "Stopping processing because it's a bot post",
+        `${JSON.stringify(payload)}`
+      );
       return;
     }
 
     if (
-      payload.action === "created" &&
-      /pr作って/i.test(payload.comment?.body)
+      payload.action === ACTION_CREATED &&
+      payload.issue?.state !== ACTION_CREATED &&
+      isPrCreateComment(payload.comment?.body)
     ) {
-      logger.info("Received PR creation request");
-
-      const match = payload.comment.body.match(
-        /[\s　]*(\S+)[\s　]*に対してpr作って/i
+      logger.info(
+        "Received PR creation request",
+        `${JSON.stringify(payload.comment?.body)}`
       );
-      const sourceBranch = match?.[1];
+
+      const sourceBranch = getSourceBranch(payload.comment.body);
+
+      if (!sourceBranch) {
+        throw new HttpsError("invalid-argument", "Source branch not found");
+      }
 
       const owner = payload.repository.owner.login;
       const repo = payload.repository.name;
@@ -50,47 +58,58 @@ router.post("/", async (req: Request, res: Response) => {
       const githubClient = new GitHubClient();
       const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
       const aiService = new AICommentService(geminiClient);
-      const prUseCase = new CreatePullRequestUseCase(aiService, githubClient);
+      const createPullRequestUseCase = new CreatePullRequestUseCase(
+        aiService,
+        githubClient
+      );
 
       try {
-        await prUseCase.handle({ owner, repo, issueNumber, sourceBranch });
-        return res.status(200).send("PR created via Gemini");
-      } catch (err) {
-        console.error("[Webhook Error]", err);
-        return res.status(500).send("Failed to create PR");
+        await createPullRequestUseCase.handle({
+          owner,
+          repo,
+          issueNumber,
+          sourceBranch,
+        });
+        logger.info("Successfully created pull request");
+        return;
+      } catch (error) {
+        throw new HttpsError("internal", `Failed to create PR: ${error}`);
       }
     }
 
     const { issueNumber, content } = validateGitHubWebhookPayload(payload);
     const repo = payload.repository;
 
-    logRepositoryInfo(repo);
+    logger.info("requested github repository", `${JSON.stringify(repo)}`);
 
     const githubClient = new GitHubClient();
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
     const aiService = new AICommentService(geminiClient);
     const useCase = new GitHubCommentUseCase(aiService, githubClient);
 
-    let prompt = content;
+    const prompt = content;
 
     // PRの場合はファイル差分をプロンプトに追加
-    if (payload.pull_request) {
-      const prFiles = await githubClient.getPullRequestFiles(
-        repo.owner.login,
-        repo.name,
-        issueNumber
-      );
-      prompt += buildPrDiffPrompt(prFiles);
-    }
+    const promptWithDiff = payload.pull_request
+      ? prompt +
+        buildPrDiffPrompt(
+          await githubClient.getPullRequestFiles(
+            repo.owner.login,
+            repo.name,
+            issueNumber
+          )
+        )
+      : prompt;
 
     await useCase.handle({
       owner: repo.owner.login,
       repo: repo.name,
       issueNumber,
-      prompt,
+      prompt: promptWithDiff,
     });
 
-    res.status(200).send("Comment posted");
+    logger.info("Successfully posted comment");
+    return;
   } catch (error) {
     throw new HttpsError("internal", `Internal Server Error: ${error}`);
   }
