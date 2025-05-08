@@ -9,6 +9,7 @@ import {
   isBotPost,
   isPrCreateComment,
   validateGitHubWebhookPayload,
+  isPrMerged,
 } from "./validators/githubWebhookValidator";
 import { buildPrDiffPrompt } from "./utils/prDiffBuilder";
 import { CreatePullRequestUseCase } from "../../application/CreatePullRequestUseCase";
@@ -81,6 +82,15 @@ router.post("/", async (req: Request, res: Response) => {
     const repo = payload.repository;
 
     logger.info("requested github repository", `${JSON.stringify(repo)}`);
+
+    // PRがマージ済みの場合はコメント投稿をスキップ
+    if (isPrMerged(payload)) {
+      logger.info(
+        "Skipping comment post because PR is already merged",
+        `${JSON.stringify({ repo: repo.name, issueNumber })}`
+      );
+      return;
+    }
 
     const githubClient = new GitHubClient();
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
