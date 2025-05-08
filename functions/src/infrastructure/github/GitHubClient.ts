@@ -15,6 +15,51 @@ export class GitHubClient {
     });
   }
 
+  async getDiffBetweenBranches(
+    owner: string,
+    repo: string,
+    base: string,
+    head: string
+  ): Promise<{ filename: string; patch?: string; status: string }[]> {
+    const res = await this.octokit.request(
+      "GET /repos/{owner}/{repo}/compare/{base}...{head}",
+      {
+        owner,
+        repo,
+        base,
+        head,
+      }
+    );
+
+    return (
+      res.data.files?.map((file) => ({
+        filename: file.filename,
+        patch: file.patch,
+        status: file.status,
+      })) ?? []
+    );
+  }
+
+  async createPullRequest(params: {
+    owner: string;
+    repo: string;
+    title: string;
+    body: string;
+    base: string;
+    head: string;
+  }): Promise<string> {
+    const res = await this.octokit.request(
+      "POST /repos/{owner}/{repo}/pulls",
+      params
+    );
+    return res.data.html_url;
+  }
+
+  async getPullRequestFromUrl(url: string): Promise<{ head: { ref: string } }> {
+    const res = await this.octokit.request(`GET ${url}`);
+    return res.data;
+  }
+
   async getPullRequestFiles(
     owner: string,
     repo: string,
