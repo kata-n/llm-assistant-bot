@@ -41,3 +41,10 @@ export function getSourceBranch(content: string): string | null {
   const match = content.match(/[\s　]*(\S+)[\s　]*に対してpr作って/i);
   return match?.[1] || null;
 }
+
+/**
+ * PRがマージ済みかどうかを判定
+ */
+export function isPrMerged(payload: any): boolean {
+  return payload.pull_request?.merged === true;
+}
