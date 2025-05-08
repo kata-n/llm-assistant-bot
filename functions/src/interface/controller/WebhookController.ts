@@ -37,6 +37,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     if (
       payload.action === ACTION_CREATED &&
+      payload.issue?.state !== ACTION_CREATED &&
       isPrCreateComment(payload.comment?.body)
     ) {
       logger.info(
