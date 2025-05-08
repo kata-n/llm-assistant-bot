@@ -67,6 +67,7 @@ export class AICommentService {
         prompt,
         []
       );
+
       logger.info("[AICommentService] response", JSON.stringify(result));
 
       const cleaned = extractJsonFromGeminiResponse(result.message);

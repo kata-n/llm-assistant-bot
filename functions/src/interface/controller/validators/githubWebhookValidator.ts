@@ -26,3 +26,18 @@ export function validateGitHubWebhookPayload(payload: any) {
   }
   return { issueNumber, content };
 }
+
+/**
+ * コメントがPR作成リクエストかどうかをチェック
+ */
+export function isPrCreateComment(content: string): boolean {
+  return /[\s　]*(\S+)[\s　]*に対してpr作って/i.test(content);
+}
+
+/**
+ * コメントがPR作成リクエストかどうかをチェック
+ */
+export function getSourceBranch(content: string): string | null {
+  const match = content.match(/[\s　]*(\S+)[\s　]*に対してpr作って/i);
+  return match?.[1] || null;
+}
