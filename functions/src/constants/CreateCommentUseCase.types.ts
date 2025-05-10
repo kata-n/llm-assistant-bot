@@ -1,4 +1,4 @@
-export type GitHubCommentUseCaseInput = {
+export type CreateCommentUseCaseInput = {
   owner: string;
   repo: string;
   issueNumber: number;

@@ -1,6 +1,6 @@
-import { GitHubCommentUseCase } from "../GitHubCommentUseCase";
+import { CreateCommentUseCase } from "../CreateCommentUseCase";
 
-describe("GitHubCommentUseCase", () => {
+describe("CreateCommentUseCase", () => {
   it("コメントが正常にGitHubに投稿されること", async () => {
     const aiService = {
       createCommentFromPrompt: jest
@@ -12,7 +12,7 @@ describe("GitHubCommentUseCase", () => {
       postComment: jest.fn().mockResolvedValue(undefined),
     };
 
-    const useCase = new GitHubCommentUseCase(
+    const useCase = new CreateCommentUseCase(
       aiService as any,
       githubClient as any
     );

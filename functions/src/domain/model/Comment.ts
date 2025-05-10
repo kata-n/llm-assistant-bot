@@ -3,7 +3,7 @@ export class Comment {
 
   constructor(value: string) {
     if (!value || value.trim().length === 0) {
-      throw new Error("空のコメントは許可されていません");
+      throw new Error("Empty comments are not allowed");
     }
     this.value = value;
   }

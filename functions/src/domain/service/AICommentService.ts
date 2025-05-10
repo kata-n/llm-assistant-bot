@@ -76,8 +76,7 @@ export class AICommentService {
 
       return JSON.parse(cleaned);
     } catch (error) {
-      console.error("[Gemini JSON Parse Error]", error);
-      throw new Error("Geminiからの応答を解析できませんでした");
+      throw new Error("Failed to parse response from Gemini");
     }
   }
 }

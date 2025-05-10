@@ -1,4 +1,3 @@
-import { Request } from "express";
 import { HttpsError } from "firebase-functions/v2/https";
 
 /**

@@ -1,8 +1,8 @@
 import { AICommentService } from "../domain/service/AICommentService";
 import { GitHubClient } from "../infrastructure/github/GitHubClient";
-import { GitHubCommentUseCaseInput } from "../constants/GitHubCommentUseCase.types";
+import { CreateCommentUseCaseInput } from "../constants/CreateCommentUseCase.types";
 
-export class GitHubCommentUseCase {
+export class CreateCommentUseCase {
   private readonly aiService: AICommentService;
   private readonly githubClient: GitHubClient;
 
@@ -11,7 +11,7 @@ export class GitHubCommentUseCase {
     this.githubClient = githubClient;
   }
 
-  async handle(input: GitHubCommentUseCaseInput): Promise<void> {
+  async handle(input: CreateCommentUseCaseInput): Promise<void> {
     const aiComment = await this.aiService.createCommentFromPrompt(
       input.prompt
     );

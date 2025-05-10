@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { GitHubCommentUseCase } from "../../application/GitHubCommentUseCase";
+import { CreateCommentUseCase } from "../../application/CreateCommentUseCase";
 import { GeminiClient } from "../../infrastructure/gemini/GeminiClient";
 import { GitHubClient } from "../../infrastructure/github/GitHubClient";
 import { AICommentService } from "../../domain/service/AICommentService";
@@ -95,7 +95,7 @@ router.post("/", async (req: Request, res: Response) => {
     const githubClient = new GitHubClient();
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY!);
     const aiService = new AICommentService(geminiClient);
-    const useCase = new GitHubCommentUseCase(aiService, githubClient);
+    const useCase = new CreateCommentUseCase(aiService, githubClient);
 
     const prompt = content;
 
