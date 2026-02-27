@@ -15,11 +15,11 @@ export class GeminiClient implements IAIClient {
   async generateComment(
     botId: string,
     prompt: string,
-    history: PoemHistory[]
+    history: PoemHistory[],
   ): Promise<{ message: string; history: PoemHistory[] }> {
     const genAI = new GoogleGenerativeAI(this.apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
+      model: "gemini-3-flash-preview",
     });
     const persona = BOT_PERSONAS[botId];
 
