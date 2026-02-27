@@ -53,6 +53,25 @@ Google Gemini の力で、PR や Issue に自動でコメントしたり、ノ�
 4. GitHub App を作成して Webhook を Cloud Run のエンドポイントに設定
 5. PR や Issue でボットをメンションしてみて！
 
+## 🚢 デプロイ方法
+
+プロジェクトの確認方法
+
+```bash
+gcloud config get-value project
+```
+
+`functions/` ディレクトリで以下のコマンドを実行してね！
+
+```bash
+gcloud functions deploy githubWebhook \
+  --entry-point=githubWebhook \
+  --runtime=nodejs22 \
+  --trigger-http \
+  --region=asia-northeast1 \
+  --allow-unauthenticated
+```
+
 ## 💡 ここが推しポイント
 
 - ギャル人格で AI レビュー返せるとか、唯一無二じゃん！？✨
